@@ -333,96 +333,44 @@ class SettingsPage:
         self.create_widgets()
         
     def create_widgets(self):
-        # Main frame
-        main_frame = ttk.Frame(self.root)
-        main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        main_frame = ttk.Frame(self.top, padding=10)
+        main_frame.pack(fill=tk.BOTH, expand=True)
         
-        # Top buttons frame
-        top_buttons_frame = ttk.Frame(main_frame)
-        top_buttons_frame.pack(fill=tk.X)
+        # SNN section
+        snn_frame = ttk.LabelFrame(main_frame, text="SNN Parameters", padding=10)
+        snn_frame.pack(fill=tk.X, pady=5)
         
-        # Data loading section
-        data_frame = ttk.LabelFrame(top_buttons_frame, text="Data Loading", padding=10)
-        data_frame.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 5))
-        
-        ttk.Button(data_frame, text="Load Text File", 
-                   command=self.load_file).pack(side=tk.LEFT, padx=5)
-        ttk.Button(data_frame, text="Use Sample Data", 
-                   command=self.use_sample_data).pack(side=tk.LEFT, padx=5)
-        
-        self.data_status = ttk.Label(data_frame, text="No data loaded")
-        self.data_status.pack(side=tk.LEFT, padx=20)
+        self.add_entry(snn_frame, "Hidden Size:", "hidden_size")
+        self.add_entry(snn_frame, "Time Steps:", "time_steps")
+        self.add_entry(snn_frame, "Membrane Time Constant (τ_mem):", "tau_mem")
+        self.add_entry(snn_frame, "Synaptic Time Constant (τ_syn):", "tau_syn")
+        self.add_entry(snn_frame, "Spike Threshold (v_thresh):", "v_thresh")
+        self.add_entry(snn_frame, "Reset Potential (v_reset):", "v_reset")
+        self.add_entry(snn_frame, "Time Step (dt):", "dt")
 
-        # Save/Load buttons
-        save_load_frame = ttk.LabelFrame(top_buttons_frame, text="Model and Settings", padding=10)
-        save_load_frame.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
+        # Text Processor section
+        text_frame = ttk.LabelFrame(main_frame, text="Text Processing", padding=10)
+        text_frame.pack(fill=tk.X, pady=5)
+        
+        self.add_entry(text_frame, "Vocabulary Size:", "vocab_size")
+        self.add_entry(text_frame, "Max Features (TF-IDF):", "max_features")
+        self.add_entry(text_frame, "Min Document Frequency (min_df):", "min_df")
+        self.add_entry(text_frame, "N-gram Range (min):", "ngram_min")
+        self.add_entry(text_frame, "N-gram Range (max):", "ngram_max")
 
-        ttk.Button(save_load_frame, text="Save Model", command=self.save_model).pack(side=tk.LEFT, padx=5)
-        ttk.Button(save_load_frame, text="Load Model", command=self.load_model).pack(side=tk.LEFT, padx=5)
-        
-        # Settings button
-        ttk.Button(top_buttons_frame, text="Settings", command=self.open_settings).pack(side=tk.RIGHT, padx=(5, 0))
-        
         # Training section
-        train_frame = ttk.LabelFrame(main_frame, text="Training", padding=10)
-        train_frame.pack(fill=tk.X, pady=(10, 10))
+        train_frame = ttk.LabelFrame(main_frame, text="Training Parameters", padding=10)
+        train_frame.pack(fill=tk.X, pady=5)
         
-        ttk.Button(train_frame, text="Start Training", 
-                   command=self.start_training).pack(side=tk.LEFT, padx=5)
+        self.add_entry(train_frame, "Epochs:", "epochs")
+        self.add_entry(train_frame, "Learning Rate:", "lr")
         
-        self.train_status = ttk.Label(train_frame, text="Not trained")
-        self.train_status.pack(side=tk.LEFT, padx=20)
+        # Buttons
+        button_frame = ttk.Frame(main_frame)
+        button_frame.pack(fill=tk.X, pady=10)
         
-        self.progress_var = tk.DoubleVar()
-        self.progress_bar = ttk.Progressbar(train_frame, variable=self.progress_var)
-        self.progress_bar.pack(side=tk.LEFT, padx=10, fill=tk.X, expand=True)
-        
-        # Generation section
-        gen_frame = ttk.LabelFrame(main_frame, text="Text Generation", padding=10)
-        gen_frame.pack(fill=tk.BOTH, expand=True)
-        
-        # Input
-        ttk.Label(gen_frame, text="Prompt:").pack(anchor=tk.W)
-        self.prompt_entry = tk.Entry(gen_frame, width=50)
-        self.prompt_entry.pack(fill=tk.X, pady=(0, 10))
-        
-        # Length control
-        length_frame = ttk.Frame(gen_frame)
-        length_frame.pack(fill=tk.X, pady=(0, 10))
-        
-        ttk.Label(length_frame, text="Length:").pack(side=tk.LEFT)
-        self.length_var = tk.IntVar(value=50)
-        length_scale = ttk.Scale(length_frame, from_=10, to=200, 
-                                 variable=self.length_var, orient=tk.HORIZONTAL)
-        length_scale.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=10)
-        
-        self.length_label = ttk.Label(length_frame, text="50")
-        self.length_label.pack(side=tk.RIGHT)
-        
-        def update_length_label(*args):
-            self.length_label.config(text=str(self.length_var.get()))
-        self.length_var.trace("w", update_length_label)
-        
-        # Generate button
-        ttk.Button(gen_frame, text="Generate Text", 
-                   command=self.generate_text).pack(pady=(0, 10))
-        
-        # Output
-        ttk.Label(gen_frame, text="Generated Text:").pack(anchor=tk.W)
-        
-        # Create a frame to hold the Text and Scrollbar
-        text_frame_container = ttk.Frame(gen_frame)
-        text_frame_container.pack(fill=tk.BOTH, expand=True)
-
-        self.output_text = tk.Text(text_frame_container, height=15, wrap=tk.WORD)
-        
-        # Create and pack the scrollbar
-        scrollbar = ttk.Scrollbar(text_frame_container, command=self.output_text.yview)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        
-        # Configure the text widget to use the scrollbar
-        self.output_text.config(yscrollcommand=scrollbar.set)
-        self.output_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        ttk.Button(button_frame, text="Apply", command=self.apply_settings).pack(side=tk.LEFT, expand=True, padx=5)
+        ttk.Button(button_frame, text="Cancel", command=self.top.destroy).pack(side=tk.LEFT, expand=True, padx=5)
         
     def add_entry(self, parent_frame, label_text, var_name):
         row_frame = ttk.Frame(parent_frame)
@@ -550,7 +498,7 @@ class SimpleGUI:
         
         ttk.Label(length_frame, text="Length:").pack(side=tk.LEFT)
         self.length_var = tk.IntVar(value=50)
-        length_scale = ttk.Scale(length_frame, from_=10, to=700, 
+        length_scale = ttk.Scale(length_frame, from_=10, to=600, 
                                  variable=self.length_var, orient=tk.HORIZONTAL)
         length_scale.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=10)
         
