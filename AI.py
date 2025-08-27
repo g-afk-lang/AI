@@ -31,14 +31,6 @@ class MathProcessor(nn.Module):
     def __init__(self, device='cpu'):
         super().__init__()
         self.device = device
-        
-        self.register_parameter('compass_radius_scale', nn.Parameter(torch.tensor(0.5)))
-        self.register_parameter('circle_intersection_threshold', nn.Parameter(torch.tensor(0.7)))
-        self.register_parameter('geometric_precision', nn.Parameter(torch.tensor(1e-6)))
-        
-        self.register_buffer('golden_ratio', torch.tensor((1 + math.sqrt(5)) / 2))
-        self.register_buffer('pi_approx', torch.tensor(22.0 / 7.0))
-        
     def circle_circle_intersection(self, center1, radius1, center2, radius2):
         d = torch.norm(center2 - center1)
         intersect_condition = torch.logical_or(d <= (radius1 + radius2), d >= torch.abs(radius1 - radius2))
@@ -230,7 +222,7 @@ class EnhancedTextProcessor(nn.Module):
         
         # Fix the logical OR operation to maintain proper dimensions
         tfidf_slice = tfidf_features[0].unsqueeze(0)  # Shape: (1, expected_size)
-        pos_sum = pos_features + position_indices.float().mean().unsqueeze(0).unsqueeze(0)  # Broadcast properly
+        pos_sum = pos_features + position_indices.float().mean().unsqueeze(0).unsqueeze(0) * geo_features  # Broadcast properly
         pos_diff = torch.abs(pos_features - position_indices.float().mean().unsqueeze(0).unsqueeze(0))  # Broadcast properly
         
         # Ensure all tensors have compatible dimensions for logical_or
