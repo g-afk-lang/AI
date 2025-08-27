@@ -1086,27 +1086,20 @@ def create_enhanced_dataset(text_processor, max_samples=1000000):
     """Create dataset with enhanced verification patterns."""
     dataset = []
     
-    # Core geometric sequences
-    geometric_sequences = [
-        ["theorem", "compass", "only", "constructions"],
-        ["how", "to", "construct", "perpendicular", "bisector"],
-        ["what", "is", "the", "mohr", "mascheroni", "theorem"],
-        ["explain", "circle", "circle", "intersection", "method"],
-        ["why", "compass", "constructions", "important", "geometry"],
-        ["define", "geometric", "construction", "principles"],
-        ["prove", "angle", "bisector", "construction", "valid"]
-    ]
-    
     # Question-answer pairs for verification
     qa_pairs = [
-        ["what is a compass construction", "a compass construction uses only compass to create geometric figures"],
-        ["how do you find midpoint", "construct two circles with equal radius centered at endpoints"],
-        ["why use compass only", "compass only constructions demonstrate pure geometric principles"],
-        ["explain perpendicular bisector", "line that passes through midpoint and is perpendicular to segment"]
+        ["what is the meaning of life", "the meaning of life involves finding purpose through relationships, personal growth, contribution to society, and the pursuit of knowledge and fulfillment"],
+        ["what is consciousness", "consciousness is the subjective experience of being aware, including thoughts, feelings, perceptions, and the sense of self that emerges from brain activity"],
+        ["do we have free will", "free will is the ability to make genuine choices, though philosophers debate whether our decisions are truly free or determined by prior causes and brain states"],
+        ["what is the nature of reality", "reality consists of the fundamental structure of existence, which may include physical matter, energy, space, time, and possibly non-physical aspects like consciousness or abstract concepts"],
+        ["how do we know what is true", "truth is determined through various methods including empirical observation, logical reasoning, reliable testimony, and coherent systems of knowledge that correspond to reality"],
+        ["what makes an action morally right", "moral rightness depends on factors like consequences for wellbeing, adherence to universal principles, virtuous character, and respect for human dignity and rights"],
+        ["what is the self", "the self is the continuous identity and consciousness that persists through time, encompassing memories, personality, beliefs, and the subjective experience of being you"],
+        ["why does anything exist rather than nothing", "existence may be explained by necessary being, quantum fluctuations, infinite regress, or the logical impossibility of absolute nothingness"],
+        ["what is the relationship between mind and body", "the mind-body relationship involves how consciousness relates to physical brain processes, whether through identity, emergence, interaction, or fundamental duality"],
+        ["what constitutes a good life", "a good life typically involves meaningful relationships, personal fulfillment, moral virtue, health, knowledge, creative expression, and contribution to something greater than oneself"]
     ]
-    
-    # Add core sequences
-    dataset.extend(geometric_sequences)
+
     
     # Add Q&A pairs
     for qa in qa_pairs:
@@ -1119,7 +1112,6 @@ def create_enhanced_dataset(text_processor, max_samples=1000000):
         dataset.append(chunk)
     
     print(f"📐 Created enhanced dataset with {len(dataset)} samples")
-    print(f"📊 Including {len(geometric_sequences)} geometric sequences")
     print(f"❓ Including {len(qa_pairs)} Q&A pairs")
     
     return dataset
