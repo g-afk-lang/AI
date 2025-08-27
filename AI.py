@@ -9,6 +9,7 @@ from tkinter import ttk, filedialog, messagebox
 import threading
 import queue
 import time
+import pickle
 
 class SimpleSNN(nn.Module):
     """Simplified Spiking Neural Network with proper LIF neurons."""
@@ -24,9 +25,9 @@ class SimpleSNN(nn.Module):
         
         # LIF parameters
         self.tau_mem = nn.Parameter(torch.tensor(float(tau_mem)))  # Membrane time constant
-        self.tau_syn = nn.Parameter(torch.tensor(float(tau_syn)))   # Synaptic time constant
+        self.tau_syn = nn.Parameter(torch.tensor(float(tau_syn)))  # Synaptic time constant
         self.v_thresh = nn.Parameter(torch.tensor(float(v_thresh)))  # Spike threshold
-        self.v_reset = nn.Parameter(torch.tensor(float(v_reset)))   # Reset potential
+        self.v_reset = nn.Parameter(torch.tensor(float(v_reset)))  # Reset potential
         
         # State variables
         self.reset_state()
@@ -57,7 +58,7 @@ class SimpleSNN(nn.Module):
         batch_size = x.shape[0]
         
         # Initialize states if needed
-        if self.v_mem is None:
+        if self.v_mem is None or self.v_mem.shape[0] != batch_size:
             self.v_mem = torch.zeros(batch_size, self.hidden_size, device=x.device)
             self.i_syn = torch.zeros(batch_size, self.hidden_size, device=x.device)
         
@@ -291,10 +292,31 @@ class SNNTextGenerator:
             # Fall back to n-gram generation
             seed_words = prompt.split() if prompt else ['the']
             return self.text_processor.generate_text(seed_words, length)
-                
+            
         except Exception as e:
             print(f"Generation error: {e}")
             return "Generation failed."
+    
+    def save_model_and_settings(self, file_path):
+        """Saves the entire generator instance to a file."""
+        try:
+            with open(file_path, 'wb') as f:
+                pickle.dump(self, f)
+            print(f"Model and settings saved to {file_path}")
+        except Exception as e:
+            print(f"Failed to save model: {e}")
+
+    @classmethod
+    def load_model_and_settings(cls, file_path):
+        """Loads a generator instance from a file."""
+        try:
+            with open(file_path, 'rb') as f:
+                generator = pickle.load(f)
+            print(f"Model and settings loaded from {file_path}")
+            return generator
+        except Exception as e:
+            print(f"Failed to load model: {e}")
+            return None
 
 class SettingsPage:
     """A settings window for adjusting model parameters."""
@@ -311,44 +333,96 @@ class SettingsPage:
         self.create_widgets()
         
     def create_widgets(self):
-        main_frame = ttk.Frame(self.top, padding=10)
-        main_frame.pack(fill=tk.BOTH, expand=True)
+        # Main frame
+        main_frame = ttk.Frame(self.root)
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
-        # SNN section
-        snn_frame = ttk.LabelFrame(main_frame, text="SNN Parameters", padding=10)
-        snn_frame.pack(fill=tk.X, pady=5)
+        # Top buttons frame
+        top_buttons_frame = ttk.Frame(main_frame)
+        top_buttons_frame.pack(fill=tk.X)
         
-        self.add_entry(snn_frame, "Hidden Size:", "hidden_size")
-        self.add_entry(snn_frame, "Time Steps:", "time_steps")
-        self.add_entry(snn_frame, "Membrane Time Constant (τ_mem):", "tau_mem")
-        self.add_entry(snn_frame, "Synaptic Time Constant (τ_syn):", "tau_syn")
-        self.add_entry(snn_frame, "Spike Threshold (v_thresh):", "v_thresh")
-        self.add_entry(snn_frame, "Reset Potential (v_reset):", "v_reset")
-        self.add_entry(snn_frame, "Time Step (dt):", "dt")
+        # Data loading section
+        data_frame = ttk.LabelFrame(top_buttons_frame, text="Data Loading", padding=10)
+        data_frame.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 5))
+        
+        ttk.Button(data_frame, text="Load Text File", 
+                   command=self.load_file).pack(side=tk.LEFT, padx=5)
+        ttk.Button(data_frame, text="Use Sample Data", 
+                   command=self.use_sample_data).pack(side=tk.LEFT, padx=5)
+        
+        self.data_status = ttk.Label(data_frame, text="No data loaded")
+        self.data_status.pack(side=tk.LEFT, padx=20)
 
-        # Text Processor section
-        text_frame = ttk.LabelFrame(main_frame, text="Text Processing", padding=10)
-        text_frame.pack(fill=tk.X, pady=5)
-        
-        self.add_entry(text_frame, "Vocabulary Size:", "vocab_size")
-        self.add_entry(text_frame, "Max Features (TF-IDF):", "max_features")
-        self.add_entry(text_frame, "Min Document Frequency (min_df):", "min_df")
-        self.add_entry(text_frame, "N-gram Range (min):", "ngram_min")
-        self.add_entry(text_frame, "N-gram Range (max):", "ngram_max")
+        # Save/Load buttons
+        save_load_frame = ttk.LabelFrame(top_buttons_frame, text="Model and Settings", padding=10)
+        save_load_frame.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
 
+        ttk.Button(save_load_frame, text="Save Model", command=self.save_model).pack(side=tk.LEFT, padx=5)
+        ttk.Button(save_load_frame, text="Load Model", command=self.load_model).pack(side=tk.LEFT, padx=5)
+        
+        # Settings button
+        ttk.Button(top_buttons_frame, text="Settings", command=self.open_settings).pack(side=tk.RIGHT, padx=(5, 0))
+        
         # Training section
-        train_frame = ttk.LabelFrame(main_frame, text="Training Parameters", padding=10)
-        train_frame.pack(fill=tk.X, pady=5)
+        train_frame = ttk.LabelFrame(main_frame, text="Training", padding=10)
+        train_frame.pack(fill=tk.X, pady=(10, 10))
         
-        self.add_entry(train_frame, "Epochs:", "epochs")
-        self.add_entry(train_frame, "Learning Rate:", "lr")
+        ttk.Button(train_frame, text="Start Training", 
+                   command=self.start_training).pack(side=tk.LEFT, padx=5)
         
-        # Buttons
-        button_frame = ttk.Frame(main_frame)
-        button_frame.pack(fill=tk.X, pady=10)
+        self.train_status = ttk.Label(train_frame, text="Not trained")
+        self.train_status.pack(side=tk.LEFT, padx=20)
         
-        ttk.Button(button_frame, text="Apply", command=self.apply_settings).pack(side=tk.LEFT, expand=True, padx=5)
-        ttk.Button(button_frame, text="Cancel", command=self.top.destroy).pack(side=tk.LEFT, expand=True, padx=5)
+        self.progress_var = tk.DoubleVar()
+        self.progress_bar = ttk.Progressbar(train_frame, variable=self.progress_var)
+        self.progress_bar.pack(side=tk.LEFT, padx=10, fill=tk.X, expand=True)
+        
+        # Generation section
+        gen_frame = ttk.LabelFrame(main_frame, text="Text Generation", padding=10)
+        gen_frame.pack(fill=tk.BOTH, expand=True)
+        
+        # Input
+        ttk.Label(gen_frame, text="Prompt:").pack(anchor=tk.W)
+        self.prompt_entry = tk.Entry(gen_frame, width=50)
+        self.prompt_entry.pack(fill=tk.X, pady=(0, 10))
+        
+        # Length control
+        length_frame = ttk.Frame(gen_frame)
+        length_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        ttk.Label(length_frame, text="Length:").pack(side=tk.LEFT)
+        self.length_var = tk.IntVar(value=50)
+        length_scale = ttk.Scale(length_frame, from_=10, to=200, 
+                                 variable=self.length_var, orient=tk.HORIZONTAL)
+        length_scale.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=10)
+        
+        self.length_label = ttk.Label(length_frame, text="50")
+        self.length_label.pack(side=tk.RIGHT)
+        
+        def update_length_label(*args):
+            self.length_label.config(text=str(self.length_var.get()))
+        self.length_var.trace("w", update_length_label)
+        
+        # Generate button
+        ttk.Button(gen_frame, text="Generate Text", 
+                   command=self.generate_text).pack(pady=(0, 10))
+        
+        # Output
+        ttk.Label(gen_frame, text="Generated Text:").pack(anchor=tk.W)
+        
+        # Create a frame to hold the Text and Scrollbar
+        text_frame_container = ttk.Frame(gen_frame)
+        text_frame_container.pack(fill=tk.BOTH, expand=True)
+
+        self.output_text = tk.Text(text_frame_container, height=15, wrap=tk.WORD)
+        
+        # Create and pack the scrollbar
+        scrollbar = ttk.Scrollbar(text_frame_container, command=self.output_text.yview)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        # Configure the text widget to use the scrollbar
+        self.output_text.config(yscrollcommand=scrollbar.set)
+        self.output_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         
     def add_entry(self, parent_frame, label_text, var_name):
         row_frame = ttk.Frame(parent_frame)
@@ -436,6 +510,13 @@ class SimpleGUI:
         
         self.data_status = ttk.Label(data_frame, text="No data loaded")
         self.data_status.pack(side=tk.LEFT, padx=20)
+
+        # Save/Load buttons
+        save_load_frame = ttk.LabelFrame(top_buttons_frame, text="Model and Settings", padding=10)
+        save_load_frame.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
+
+        ttk.Button(save_load_frame, text="Save Model", command=self.save_model).pack(side=tk.LEFT, padx=5)
+        ttk.Button(save_load_frame, text="Load Model", command=self.load_model).pack(side=tk.LEFT, padx=5)
         
         # Settings button
         ttk.Button(top_buttons_frame, text="Settings", command=self.open_settings).pack(side=tk.RIGHT, padx=(5, 0))
@@ -469,7 +550,7 @@ class SimpleGUI:
         
         ttk.Label(length_frame, text="Length:").pack(side=tk.LEFT)
         self.length_var = tk.IntVar(value=50)
-        length_scale = ttk.Scale(length_frame, from_=10, to=200, 
+        length_scale = ttk.Scale(length_frame, from_=10, to=700, 
                                  variable=self.length_var, orient=tk.HORIZONTAL)
         length_scale.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=10)
         
@@ -612,7 +693,37 @@ class SimpleGUI:
             self.generator.is_trained = False
         except Exception as e:
             messagebox.showerror("Initialization Error", f"Failed to apply settings: {e}")
-        
+    
+    def save_model(self):
+        """Prompts for a file path and saves the generator instance."""
+        if not self.generator.is_trained:
+            messagebox.showwarning("Warning", "The model is not trained. Saving an untrained model.")
+            
+        file_path = filedialog.asksaveasfilename(
+            defaultextension=".pkl",
+            filetypes=[("Pickle files", "*.pkl"), ("All files", "*.*")],
+            title="Save Model and Settings"
+        )
+        if file_path:
+            self.generator.save_model_and_settings(file_path)
+            self.message_queue.put(("status", f"Model and settings saved."))
+
+    def load_model(self):
+        """Prompts for a file path and loads a generator instance."""
+        file_path = filedialog.askopenfilename(
+            filetypes=[("Pickle files", "*.pkl"), ("All files", "*.*")],
+            title="Load Model and Settings"
+        )
+        if file_path:
+            loaded_generator = SNNTextGenerator.load_model_and_settings(file_path)
+            if loaded_generator:
+                self.generator = loaded_generator
+                self.settings = self.generator.settings
+                self.message_queue.put(("status", f"Model and settings loaded."))
+                self.message_queue.put(("data_status", f"Model loaded from {file_path}"))
+                self.train_status.config(text="Model loaded" if self.generator.is_trained else "Not trained")
+                self.progress_var.set(100 if self.generator.is_trained else 0)
+
     def run(self):
         """Start the GUI application."""
         self.root.mainloop()
