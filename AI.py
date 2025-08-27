@@ -1251,31 +1251,15 @@ def main_implementation():
     print("2. Single Hugging Face dataset") 
     print("3. Local file")
     
-    choice = input("Enter choice (1, 2, or 3, default is 1): ").strip() or "1"
+    choice = input("Enter choice (1 or 2, default is 1): ").strip() or "1"
     
     words = []
     
     if choice == "1":
         print("🎯 Loading multiple high-quality datasets...")
         words = text_processor.load_and_process_text_streaming(dataset_name="multi")
-        
-    elif choice == "2":
-        if not HF_DATASETS_AVAILABLE:
-            print("⚠️ Hugging Face datasets library not available. Install with: pip install datasets")
-            print("⚠️ Falling back to local file loading...")
-            choice = "3"
-        else:
-            dataset_name = input("Enter dataset name: ").strip()
-            if not dataset_name:
-                print("⚠️ No dataset name provided. Loading multi-dataset...")
-                words = text_processor.load_and_process_text_streaming(dataset_name="multi")
-            else:
-                split = input("Enter split (train/test/validation, default=train): ").strip() or "train"
-                words = text_processor.load_and_process_text_streaming(
-                    dataset_name=dataset_name, split=split
-                )
     
-    if choice == "3":
+    if choice == "2":
         filename = input("Enter local filename (press Enter for sample_data.txt): ").strip() or "sample_data.txt"
         words = text_processor.load_and_process_text_streaming(file_path=filename)
     
