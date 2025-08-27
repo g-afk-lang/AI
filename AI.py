@@ -223,12 +223,40 @@ class EnhancedTextProcessor(nn.Module):
         position_indices = torch.arange(min(len(words), 999), device=device)
         pos_embs = self.position_embeddings(position_indices)
         pos_features = pos_embs.mean(dim=0, keepdim=True)
-      
+        
         geo_features = self.encode_geometric_terms(words)
         combined_features = torch.cat([tfidf_processed, word_features, pos_features, geo_features], dim=1)
         compass_features = custom_sigmoid(self.compass_feature_processor(combined_features) * self.geometric_sigmoid_scale)
-        final_features = self.apply_compass_construction_to_features(compass_features)
+        
+        # Fix the logical OR operation to maintain proper dimensions
+        tfidf_slice = tfidf_features[0].unsqueeze(0)  # Shape: (1, expected_size)
+        pos_sum = pos_features + position_indices.float().mean().unsqueeze(0).unsqueeze(0)  # Broadcast properly
+        pos_diff = torch.abs(pos_features - position_indices.float().mean().unsqueeze(0).unsqueeze(0))  # Broadcast properly
+        
+        # Ensure all tensors have compatible dimensions for logical_or
+        if tfidf_slice.shape[1] != pos_sum.shape[1]:
+            min_dim = min(tfidf_slice.shape[1], pos_sum.shape[1])
+            tfidf_slice = tfidf_slice[:, :min_dim]
+            pos_sum = pos_sum[:, :min_dim]
+            pos_diff = pos_diff[:, :min_dim]
+        
+        logical_condition = torch.logical_not(tfidf_slice >= pos_diff)
+        
+        # Ensure the result has the same dimensions as compass_features
+        if logical_condition.shape[1] != compass_features.shape[1]:
+            if logical_condition.shape[1] < compass_features.shape[1]:
+                padding = torch.ones(logical_condition.shape[0], 
+                                   compass_features.shape[1] - logical_condition.shape[1], 
+                                   device=device, dtype=torch.bool)
+                logical_condition = torch.cat([logical_condition, padding], dim=1)
+            else:
+                logical_condition = logical_condition[:, :compass_features.shape[1]]
+        
+        modified_features = logical_condition.float() * compass_features
+        final_features = self.apply_compass_construction_to_features(modified_features)
         return final_features
+
+
     
     def load_and_process_text_streaming(self, file_path="test.txt", chunk_size=1000, dataset_name=None, split=None):
         word_count = 0
@@ -490,7 +518,7 @@ def main_implementation():
     num_neurons = 1280
     chunk_size = 160
     vocab_limit = 300000
-    max_features = 5000
+    max_features = 320
     text_processor = EnhancedTextProcessor(num_neurons, device=device, vocab_limit=vocab_limit, max_features=max_features).to(device)
     snn_model = TrainableStreamingSNN(num_neurons, device=device, chunk_size=chunk_size).to(device)
     text_generator = TrainableStreamingTextGenerator(text_processor).to(device)
@@ -535,21 +563,17 @@ def main_implementation():
     
     print("\n🎯 Interactive Mode:")
     while True:
-        try:
-            user_input = input("\nUSER: ").strip()
-            if not user_input:
-                continue
-            
-            seed_words = user_input.split()
-            features = text_processor.words_to_neural_features(seed_words)
-            spike_outputs = snn_model.forward(features)
-            response = text_generator.generate_text_trainable(spike_outputs, seed_words=seed_words, length=500)
-            print(f"🤖 AI: {response}")
-            
-        except KeyboardInterrupt:
-            print("\nExiting...")
-            break
-        except Exception as e:
-            print(f"❌ Error: {e}")
+
+        user_input = input("\nUSER: ").strip()
+        if not user_input:
+            continue
+        
+        seed_words = user_input.split()
+        features = text_processor.words_to_neural_features(seed_words)
+        spike_outputs = snn_model.forward(features)
+        response = text_generator.generate_text_trainable(spike_outputs, seed_words=seed_words, length=500)
+        print(f"🤖 AI: {response}")
+        
+    
 if __name__ == "__main__":
     main_implementation()
