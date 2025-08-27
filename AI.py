@@ -965,7 +965,7 @@ class TrainableStreamingTextGenerator(nn.Module):
             question_classification = self.classify_question_type(spk_rec)
         
         # Determine if this is a question and adjust generation strategy
-        is_question = question_classification[1] + question_classification[2] > 0.5
+        is_question = question_classification[1] + question_classification[2] > 0.1
         
         if seed_words is None or len(seed_words) == 0:
             if is_question:
@@ -982,15 +982,6 @@ class TrainableStreamingTextGenerator(nn.Module):
             current_words = [random.choice(self.fallback_words)]
         
         generated_words = current_words.copy()
-        
-        # Enhanced generation with question-aware logic
-        if is_question:
-            # For questions, try to provide structured answers
-            if not any(word in ' '.join(current_words) for word in ['because', 'since', 'due']):
-                # Add explanatory connectors
-                explanatory_starters = ['because', 'since', 'this is due to', 'the reason is']
-                if random.random() < 0.7:  # 70% chance to add explanatory connector
-                    generated_words.append(random.choice(explanatory_starters))
         
         # Initialize LIF-like computation
         if len(spk_rec) > 0:
@@ -1022,7 +1013,7 @@ class TrainableStreamingTextGenerator(nn.Module):
             prob_idx = min(i, len(spk_rec) - 1)
             x = spk_rec[prob_idx]
             
-            i_syn = alpha * i_syn + x
+            i_syn = alpha * i_syn * x
             membrane_update = i_syn * custom_sigmoid(v_mem)
             v_mem = beta * v_mem + membrane_update
             
