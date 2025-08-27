@@ -1248,8 +1248,7 @@ def main_implementation():
     # Enhanced dataset loading options
     print("Choose enhanced data source:")
     print("1. Multiple Hugging Face datasets (Recommended)")
-    print("2. Single Hugging Face dataset") 
-    print("3. Local file")
+    print("2. Local file")
     
     choice = input("Enter choice (1 or 2, default is 1): ").strip() or "1"
     
