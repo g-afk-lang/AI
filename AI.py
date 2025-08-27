@@ -67,7 +67,6 @@ class MultiDatasetManager:
             'question_patterns': ['what', 'how', 'why', 'when', 'where', 'which', 'who'],
             'answer_patterns': ['because', 'due to', 'result', 'therefore', 'since', 'as a result'],
             'explanation_patterns': ['explain', 'describe', 'define', 'meaning', 'concept'],
-            'geometric_patterns': ['compass', 'circle', 'construction', 'theorem', 'proof', 'geometry'],
             'quality_indicators': ['detailed', 'comprehensive', 'step by step', 'example', 'illustration']
         }
         self.dataset_weights = {}
@@ -112,27 +111,22 @@ class MultiDatasetManager:
         # Check for question patterns
         question_score = sum(1 for pattern in self.verification_patterns['question_patterns'] 
                            if pattern in text_lower)
-        score += question_score * 0.2
+        score += question_score * 1.2
         
         # Check for answer patterns  
         answer_score = sum(1 for pattern in self.verification_patterns['answer_patterns']
                          if pattern in text_lower)
-        score += answer_score * 0.3
+        score += answer_score * 1.3
         
         # Check for explanation patterns
         explanation_score = sum(1 for pattern in self.verification_patterns['explanation_patterns']
                               if pattern in text_lower)
-        score += explanation_score * 0.25
-        
-        # Check for geometric patterns (higher weight for our domain)
-        geometric_score = sum(1 for pattern in self.verification_patterns['geometric_patterns']
-                            if pattern in text_lower)
-        score += geometric_score * 0.4
+        score += explanation_score * 1.25
         
         # Check for quality indicators
         quality_score = sum(1 for pattern in self.verification_patterns['quality_indicators']
                           if pattern in text_lower)
-        score += quality_score * 0.15
+        score += quality_score * 1.15
         
         # Length bonus for detailed responses
         word_count = len(text.split())
@@ -141,7 +135,7 @@ class MultiDatasetManager:
         elif word_count > 300:
             score += 0.3
             
-        return min(score, 5.0)  # Cap at 5.0
+        return score 
     
     def get_balanced_samples(self, max_samples_per_dataset=10000):
         """Get balanced samples from all datasets with quality filtering."""
