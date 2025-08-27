@@ -18,7 +18,7 @@ import csv
 
 # Global variables
 
-Filename = "xaa" #located in load_training_pairs_from_file()
+Filename = "xaa"
 
 KB_LEN = -1  # Set to positive number to limit processing
 HF_DATASETS_AVAILABLE = False
