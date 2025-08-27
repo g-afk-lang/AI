@@ -515,14 +515,22 @@ class SimpleGUI:
         
         # Output
         ttk.Label(gen_frame, text="Generated Text:").pack(anchor=tk.W)
-        self.output_text = tk.Text(gen_frame, height=15, wrap=tk.WORD)
-        self.output_text.pack(fill=tk.BOTH, expand=True)
-        
-        # Scrollbar for output
-        scrollbar = ttk.Scrollbar(self.output_text)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        # Create a frame for the text widget and scrollbar
+        text_frame = ttk.Frame(gen_frame)
+        text_frame.pack(fill=tk.BOTH, expand=True)
+
+        # Create text widget and scrollbar in the same frame
+        self.output_text = tk.Text(text_frame, height=15, wrap=tk.WORD)
+        scrollbar = ttk.Scrollbar(text_frame, orient=tk.VERTICAL, command=self.output_text.yview)
+
+        # Configure the text widget to use the scrollbar
         self.output_text.config(yscrollcommand=scrollbar.set)
-        scrollbar.config(command=self.output_text.yview)
+
+        # Pack the scrollbar first (on the right), then the text widget (fills remaining space)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.output_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
     
     def check_queue(self):
         """Check message queue for updates."""
