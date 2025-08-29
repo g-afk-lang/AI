@@ -472,8 +472,8 @@ class TrainableStreamingTextGenerator(nn.Module):
             gumbel_noise = -torch.log(-torch.log(torch.rand_like(spike_prob) + 1e-8) + 1e-8)
             spikes = torch.sigmoid((torch.log(spike_prob + 1e-8) - torch.log(1 - spike_prob + 1e-8) + gumbel_noise) / 0.1)
             batch_size = len(spikes)
-            thought = np.linspace(0, 1, batch_size)
-            kinetic = np.linspace(0, 200, batch_size)
+            thought = np.linspace(0, 100, batch_size)
+            kinetic = np.linspace(0, 20000, batch_size)
             reward1 = np.abs(thought - kinetic)
             reward2 = thought * kinetic
             decay = np.exp(-10 * np.abs(thought - kinetic))
