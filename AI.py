@@ -584,18 +584,18 @@ class TrainableStreamingTextGenerator(nn.Module):
             if hidden_states is not None and len(hidden_states) > prob_idx:
                 hidden_prob = torch.sigmoid(hidden_states[prob_idx]).mean().item()
                 # Use np.where to decide: use hidden states only if probability is high
-                p_step = np.where(hidden_prob >= tau, hidden_prob, base_prob)
-                use_hidden_states = hidden_prob >= tau
+                p_step = np.where(hidden_prob <= tau, hidden_prob, base_prob)
+                use_hidden_states = hidden_prob <= tau
             else:
                 p_step = base_prob
 
             # Apply high-probability gating only if we have advantage
             if use_hidden_states:
                 # High-probability gate: amplify if p_step >= tau, attenuate otherwise
-                weights = np.where(p_step >= tau, weights * 1.2, weights * 0.8)
+                weights = np.where(p_step >= tau, weights * 1.7, weights * 0.8)
             else:
                 # Use base selection probabilities for modulation
-                weights = np.where(base_prob >= tau, weights * 1.1, weights * 0.9)
+                weights = np.where(base_prob >= tau, weights * 1.7, weights * 0.9)
 
             # If advantage by reduction is incomplete, then do AND operation with text dataset
             if adv_incomplete:
