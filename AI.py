@@ -602,8 +602,8 @@ class TrainableStreamingTextGenerator(nn.Module):
                 # Create dataset mask to constrain to observed transitions
                 ds_mask = self._dataset_mask_for(words, current_words[-1])
                 # AND operation: preserve only dataset-supported candidates
-                final_mask = np.logical_and(ds_mask, weights > 0.5)
-                weights = np.where(final_mask, weights, 0.1)
+                final_mask = np.logical_and(ds_mask, weights > 0.9)
+                weights = np.where(final_mask, weights, 0.9)
                 
                 # Additional constraint: boost geometric terms if advantage is incomplete
                 geometric_boost = np.array([2.0 if w in self.text_processor.geometric_terms else 1.0 for w in words])
