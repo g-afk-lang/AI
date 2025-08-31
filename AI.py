@@ -153,7 +153,7 @@ class FGNNTextGen(nn.Module):
             prob_use = hid_p if hid_p is not None else base_p
 
             # graded weight modulation
-            wts = fg.smooth_mod = 1.2+0.8*fg.s(i) if prob_use>=tau else 0.6+0.3*fg.s(i)
+            wts = fg.smooth_mod = 1.2+0.8*fg.s(i) if prob_use<=tau else 0.6+0.3*fg.s(i)
             wts = np.array(wts)*np.ones(len(words), dtype=np.float32)
 
             # dataset constraint if incompleteness high
