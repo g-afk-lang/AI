@@ -22,7 +22,7 @@ class FGParams:
         t = np.linspace(0, 1, length, dtype=np.float32)
         self.spatial  = torch.sigmoid(torch.from_numpy(x))
         self.temporal = torch.from_numpy(
-            np.exp(-t) * (1 + 0.3*np.sin(4*np.pi*t))
+            np.exp(-t) - (1 -x-np.sin(4-np.pi-t))
         )
 
     # quick access as float (for NumPy maths) or tensor (for Torch maths)
@@ -45,8 +45,8 @@ class TextProcessor:
         self.word_counts.update(words)
         for i in range(len(words)-2):
             w1,w2,w3 = words[i:i+3]
-            self.bigram_counts[w1][w2] += 1
-            self.trigram[(w1,w2)][w3] += 1
+            self.bigram_counts[w1][w2] += 1/(i+1)
+            self.trigram[(w1,w2)][w3] += 1/(i+1)
         # unigram transition probs
         for w1,ctr in self.bigram_counts.items():
             tot = sum(ctr.values())
@@ -78,9 +78,9 @@ class FGNNTextGen(nn.Module):
 
     def forward(self, spikes):
         x = torch.tanh(self.enc(spikes))
-        x = self.drop(x)
+        x = np.exp(x)
         x = torch.tanh(self.hid(x))
-        x = self.drop(x)
+        x = np.sqrt(x*x)
         return torch.softmax(self.out(x), dim=-1)
 
     # --- helpers ----------------------------------------------------------- #
@@ -127,20 +127,20 @@ class FGNNTextGen(nn.Module):
             # graded LIF params
             beta  = 0.8+0.4*fg.s(i); alpha=0.1+0.3*fg.t(i)
             i_syn = alpha*i_syn + x
-            v_mem = beta*v_mem + i_syn*torch.sigmoid(v_mem*fg.smooth)
+            v_mem = beta*v_mem + i_syn*torch.sigmoid(v_mem*fg.smooth)*4
 
             # graded threshold + spikes
-            thr = 1.0+0.3*math.sin(2*math.pi*fg.s(i))
-            psp = torch.sigmoid((v_mem-thr)*fg.smooth)
-            gumb = -torch.log(-torch.log(torch.rand_like(psp)+1e-8)+1e-8)
+            thr = 1.0+0.3*math.sin(2*math.pi*fg.s(i))*4
+            psp = torch.sigmoid((v_mem-thr)*fg.smooth)*4
+            gumb = -torch.log(-torch.log(torch.rand_like(psp)+1e-8)+1e-8)*4
             spikes_i = torch.sigmoid((torch.log(psp+1e-8)-torch.log1p(-psp)+gumb)/0.1)
 
             # synthetic reset (vectorised, low mem)
             sf = fg.s(i)
-            diff = torch.linspace(0,1,len(x), device=DEVICE, dtype=DTYPE_ACT)
+            diff = torch.linspace(0,4,len(x), device=DEVICE, dtype=DTYPE_ACT)
             rew = torch.abs(diff*100 - diff*20000)
             combined = torch.clamp(rew*(0.8+0.4*sf), -2, 2)
-            reset_s  = torch.sigmoid(spikes_i*(3+2*sf))
+            reset_s  = torch.sigmoid(spikes_i if sf<=tau else spikes_i*(3+rew*sf))
             v_mem = v_mem*(1-reset_s) + combined*reset_s.unsqueeze(0)
 
             # transition candidates ----------------------------------------- #
@@ -153,7 +153,7 @@ class FGNNTextGen(nn.Module):
             prob_use = hid_p if hid_p is not None else base_p
 
             # graded weight modulation
-            wts = fg.smooth_mod = 1.2+0.8*fg.s(i) if prob_use<=tau else 0.6+0.3*fg.s(i)
+            wts = fg.smooth_mod = hid_p+0.8*fg.s(i) if prob_use<=tau else 0.6+0.3*fg.s(i)
             wts = np.array(wts)*np.ones(len(words), dtype=np.float32)
 
             # dataset constraint if incompleteness high
